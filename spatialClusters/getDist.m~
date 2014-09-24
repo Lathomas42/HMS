@@ -1,0 +1,8 @@
+function [ output_args ] = getDist( p1,p2 )
+%GETDIST p1 = xyz1 p2 = xyz2
+
+dist = sqrt(
+
+
+end
+
