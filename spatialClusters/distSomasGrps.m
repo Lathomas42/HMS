@@ -1,7 +1,10 @@
+%% loading files
 load('grps.mat')
 load('skeletons.mat')
 load('sknumb.mat')
 load('somalist.mat')
+
+%% setting up somaskels_gephi_grps (only with soma, marked with modularity grps with xyz)
 
 somaskels = [somalist skeletons];
 somaskels_gephi = [somaskels ismember(somaskels(:,6),sknumb)];
@@ -11,6 +14,8 @@ sknumb_grps = sortrows(sknumb_grps,1);
 somaskels_gephi = somaskels_gephi(somaskels_gephi(:,7)==1,:);
 somaskels_gephi_grps = [somaskels_gephi, sknumb_grps(:,2)];
 soma_xyz = somaskels_gephi_grps(:,2:4);
+
+%% get distances
 temp_pd = pdist(soma_xyz);
 dist_mat = squareform(temp_pd);
 same_grp_mat = zeros(length(dist_mat));
@@ -26,6 +31,8 @@ end
 
 dists_same = dist_mat(same_grp_mat==1);
 dists_dif = dist_mat(dif_grp_mat==1);
+
+%% make figure 
 
 figure;
 hold on
