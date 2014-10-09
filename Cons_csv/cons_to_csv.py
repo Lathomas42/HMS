@@ -124,6 +124,8 @@ def updateSheet():
                                                   not in usedSkels)):
                 rows = rowMake(c, [edge['source'], edge['target']], loaded)
                 if edge['source'] not in usedSkels:
+                    n = len(worksheet.col_values(1))
+                    rows[0][22]='=IF(Z7="UHOH","uhoh",IF(C%(r)="","Ready",IF(I%(r)="","In progress",IF(K%(r)="","needs Review",IF(U%(r)="","In progress","Reviewed")))))' % {'r':str(n+1)}
                     worksheet.append_row(rows[0])
                 if edge['target'] not in usedSkels:
                     worksheet.append_row(rows[1])
