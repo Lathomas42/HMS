@@ -48,7 +48,29 @@ def WriteListFromCatmaid():
     f.close()
 
 
-def rowMake(c, vals=[], loaded=None):
+def WriteCatmaidGoogle(sht_name="Conn_spreadsheet_catmaid"):
+    c = catmaid.Connection('http://catmaid.hms.harvard.edu',
+                           'thomas.lo',
+                           'asdfjkl;',
+                           'Validation Tracing DR5_7L')
+
+    UN = str(raw_input("Enter Google UserName: "))
+    PW = getpass.getpass("Enter Google Password: ")
+    gc = gspread.login(UN, PW)
+    sht = gc.open(sht_name).sheet1
+
+    Conn_Load = loadmat("cons_to_seed.mat")
+    loaded = np.asarray(Conn_Load['cons_to_seed'])
+
+    wd = c.wiring_diagram()
+    for edge in wd['data']['edges']:
+        n = len(sht.col_values(1))
+        rows = rowMake(c, n, [edge['source'], edge['target']], loaded)
+        for row in rows:
+            sht.append_row(row)
+
+
+def rowMake(c, row_numb, vals=[], loaded=None):
     Head = ['Skeleton ID', 'Pre or Post', 'Date Began Tracing',
             'Original Annotator', '# of Nodes', 'If Soma=1',
             'Cell Type', 'Comments', 'Date Finished Tracing',
@@ -57,7 +79,7 @@ def rowMake(c, vals=[], loaded=None):
             'INITIALS', '# of branches added by reviewer',
             '# of branches CBR', '# of distal nodes tagged CBR',
             '# of branches removed by reviewer', '# of synapses altered',
-            'Date Finished', 'Reviewing Comments', 'Seeder', 'Date Seeded',
+            'Date Finished', 'Reviewing Comments', 'Status', 'Date Seeded',
             'Connector ID', 'Original Connector ID']
     if vals == []:
         return Head
@@ -70,14 +92,20 @@ def rowMake(c, vals=[], loaded=None):
         origID = getOrigConnector(con_get[1]['x'], con_get[1]['y'],
                                   con_get[1]['z'], loaded)
         link = writeUrl(con_get[1]['x'], con_get[1]['y'], con_get[1]['z'])
+        link_old = writeUrl(con_get[1]['x'], con_get[1]['y'],
+                            con_get[1]['z'], 9)
+        if_state = '=IF(Z{0}="UHOH","uhoh",IF(C{0}="","Ready",IF(I{0}="","In progress",IF(K{0}="","needs Review",IF(U{0}="","In progress","Reviewed")))))'.format(row_numb+1)
+        if_state2 = '=IF(Z{0}="UHOH","uhoh",IF(C{0}="","Ready",IF(I{0}="","In progress",IF(K{0}="","needs Review",IF(U{0}="","In progress","Reviewed")))))'.format(row_numb+2)
+
         row_1 = [vals[0], '=HYPERLINK("{}", "PRE")'.format(link),
                  '', '', '', '', 'e', '', '', '', '',
                  '', '', '', '', '', '', '', '', '', '', '',
-                 'LoganBot', date, conID, origID]
+                 if_state, date, conID, origID]
         row_2 = [vals[1], '=HYPERLINK("{}", "POST")'.format(link),
                  '', '', '', '', 'e', '', '', '', '',
                  '', '', '', '', '', '', '', '', '', '', '',
-                 'LoganBot', date, conID, origID]
+                 if_state2, date, conID,
+                 '=HYPERLINK("{}","{}")'.format(link_old, origID)]
         return row_1, row_2
 
 
@@ -105,7 +133,6 @@ def getOrigConnector(conx, cony, conz, loadedList):
 def updateSheet():
     UN = str(raw_input("Enter Google UserName: "))
     PW = getpass.getpass("Enter Google Password: ")
-    auth = (UN, PW)
     gc = gspread.login(UN, PW)
     worksheet = gc.open("Conn_spreadsheet_catmaid").sheet1
     usedSkels = worksheet.col_values(1)
@@ -122,12 +149,14 @@ def updateSheet():
     for edge in wd['data']['edges']:
         if ((edge['target'] not in usedSkels) or (edge['source']
                                                   not in usedSkels)):
-                rows = rowMake(c, [edge['source'], edge['target']], loaded)
+                rows = rowMake(c, 1, [edge['source'], edge['target']], loaded)
                 if edge['source'] not in usedSkels:
                     n = len(worksheet.col_values(1))
-                    rows[0][22]='=IF(Z7="UHOH","uhoh",IF(C%(r)="","Ready",IF(I%(r)="","In progress",IF(K%(r)="","needs Review",IF(U%(r)="","In progress","Reviewed")))))' % {'r':str(n+1)}
+                    rows[0][22]='=IF(Z{0}="UHOH","uhoh",IF(C{0}="","Ready",IF(I{0}="","In progress",IF(K{0}="","needs Review",IF(U{0}="","In progress","Reviewed")))))'.format(n+1)
                     worksheet.append_row(rows[0])
                 if edge['target'] not in usedSkels:
+                    n = len(worksheet.col_values(1))
+                    rows[1][22]='=IF(Z{0}="UHOH","uhoh",IF(C{0}="","Ready",IF(I{0}="","In progress",IF(K{0}="","needs Review",IF(U{0}="","In progress","Reviewed")))))'.format(n+1)
                     worksheet.append_row(rows[1])
 
 
