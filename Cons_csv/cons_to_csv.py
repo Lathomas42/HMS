@@ -3,7 +3,10 @@ import csv
 import numpy as np
 import catmaid
 import time
-import gspread
+try:
+    import gspread
+except:
+    gspread = None
 import getpass
 
 
@@ -159,4 +162,5 @@ def updateSheet():
                     rows[1][22]='=IF(Z{0}="UHOH","uhoh",IF(C{0}="","Ready",IF(I{0}="","In progress",IF(K{0}="","needs Review",IF(U{0}="","In progress","Reviewed")))))'.format(n+1)
                     worksheet.append_row(rows[1])
 
-
+if __name__ == "__main__":
+    WriteConnectorList();
